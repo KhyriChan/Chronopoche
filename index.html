@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronovol - Le Livreur Indélicat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Écran de démarrage -->
+        <div id="start-screen" class="screen active">
+            <h1>📦 CHRONOVOL 📦</h1>
+            <p class="subtitle">Le Livreur Indélicat</p>
+            <p class="intro">
+                Vous êtes livreur pour ChronoPost. Votre salaire est misérable,
+                mais les colis... ils sont si tentants. Allez-vous résister ?
+            </p>
+            <button id="start-btn" class="btn-primary">Commencer la tournée</button>
+        </div>
+
+        <!-- Écran principal du jeu -->
+        <div id="game-screen" class="screen">
+            <!-- En-tête avec stats -->
+            <div id="game-header">
+                <div class="stat-container">
+                    <div class="stat">
+                        <span class="stat-label">💰 Butin</span>
+                        <span class="stat-value" id="money">0€</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">📅 Jour</span>
+                        <span class="stat-value" id="day">1/30</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">📦 Livraisons</span>
+                        <span class="stat-value" id="deliveries">0/10</span>
+                    </div>
+                    <div class="stat suspicion-stat">
+                        <span class="stat-label">🔍 Suspicion</span>
+                        <div class="suspicion-bar">
+                            <div id="suspicion-fill" class="suspicion-fill"></div>
+                        </div>
+                        <span class="stat-value" id="suspicion">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zone de livraison -->
+            <div id="delivery-zone">
+                <div id="address-info">
+                    <h2 id="current-address">Livraison en cours...</h2>
+                    <p id="customer-description"></p>
+                </div>
+
+                <div id="package-container">
+                    <div id="package-info">
+                        <h3>📦 Colis à livrer</h3>
+                        <div id="package-details">
+                            <p><strong>Taille :</strong> <span id="package-size"></span></p>
+                            <p><strong>Expéditeur :</strong> <span id="package-sender"></span></p>
+                            <p><strong>Poids :</strong> <span id="package-weight"></span></p>
+                            <p><strong>Aspect :</strong> <span id="package-aspect"></span></p>
+                        </div>
+                        <div id="package-hints" class="hints"></div>
+                    </div>
+                </div>
+
+                <div id="action-buttons">
+                    <button id="deliver-btn" class="btn-success">
+                        ✓ Livrer normalement
+                    </button>
+                    <button id="inspect-btn" class="btn-warning">
+                        👀 "Inspecter" le colis
+                    </button>
+                </div>
+            </div>
+
+            <!-- Journal d'événements -->
+            <div id="event-log">
+                <h4>📰 Derniers événements</h4>
+                <div id="log-content"></div>
+            </div>
+        </div>
+
+        <!-- Écran de fin -->
+        <div id="end-screen" class="screen">
+            <h1 id="end-title"></h1>
+            <div id="end-content"></div>
+            <div id="end-stats"></div>
+            <button id="restart-btn" class="btn-primary">Rejouer</button>
+        </div>
+
+        <!-- Modal d'inspection -->
+        <div id="inspect-modal" class="modal">
+            <div class="modal-content">
+                <h2>🔍 Inspection du colis...</h2>
+                <p id="inspect-result"></p>
+                <div id="inspect-actions">
+                    <button id="steal-btn" class="btn-danger">Voler le contenu</button>
+                    <button id="cancel-steal-btn" class="btn-secondary">Refermer discrètement</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
