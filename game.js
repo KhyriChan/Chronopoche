@@ -147,8 +147,59 @@ const elements = {
     inspectResult: document.getElementById('inspect-result'),
     endTitle: document.getElementById('end-title'),
     endContent: document.getElementById('end-content'),
-    endStats: document.getElementById('end-stats')
+    endStats: document.getElementById('end-stats'),
+    truck: document.getElementById('delivery-truck')
 };
+
+// ===== CARTE ET ANIMATION DU CAMION =====
+const deliveryPoints = [];
+for (let i = 1; i <= 10; i++) {
+    deliveryPoints.push(document.getElementById(`point-${i}`));
+}
+
+function moveTruckToPoint(pointIndex) {
+    if (pointIndex < 0 || pointIndex >= deliveryPoints.length) return;
+
+    const point = deliveryPoints[pointIndex];
+    const truck = elements.truck;
+
+    // Marquer le point précédent comme complété
+    if (pointIndex > 0) {
+        deliveryPoints[pointIndex - 1].classList.remove('current');
+        deliveryPoints[pointIndex - 1].classList.add('completed');
+    }
+
+    // Marquer le point actuel
+    point.classList.add('current');
+
+    // Obtenir la position du point
+    const pointRect = point.getBoundingClientRect();
+    const gridRect = point.parentElement.getBoundingClientRect();
+
+    // Calculer la position relative
+    const x = pointRect.left - gridRect.left + (pointRect.width / 2) - 20;
+    const y = pointRect.top - gridRect.top + (pointRect.height / 2) - 20;
+
+    // Animer le camion
+    truck.classList.add('moving');
+    truck.style.left = `${x}px`;
+    truck.style.top = `${y}px`;
+
+    // Retirer l'animation après le déplacement
+    setTimeout(() => {
+        truck.classList.remove('moving');
+    }, 1500);
+}
+
+function resetMap() {
+    // Réinitialiser tous les points
+    deliveryPoints.forEach(point => {
+        point.classList.remove('current', 'completed');
+    });
+
+    // Replacer le camion au premier point
+    moveTruckToPoint(0);
+}
 
 // ===== UTILITAIRES =====
 function random(min, max) {
@@ -260,6 +311,9 @@ function startNewDelivery() {
 
     gameState.currentPackage = generatePackage();
     gameState.currentCustomer = generateCustomer();
+
+    // Déplacer le camion vers le point de livraison
+    moveTruckToPoint(gameState.deliveriesToday);
 
     updatePackageDisplay();
     updateUI();
@@ -438,6 +492,7 @@ function endDay() {
         gameState.suspicion = Math.max(0, gameState.suspicion - 5);
         updateUI();
         setTimeout(() => {
+            resetMap();
             addLog(`☀️ Jour ${gameState.day} - Nouvelle tournée`, 'info');
             startNewDelivery();
         }, 1000);
@@ -555,6 +610,7 @@ function initGame() {
     screens.game.classList.add('active');
 
     updateUI();
+    resetMap();
     addLog('☀️ Début de votre première tournée. Bonne chance !', 'info');
     startNewDelivery();
 }

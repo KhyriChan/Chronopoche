@@ -162,6 +162,136 @@ button:hover {
     transition: width 0.5s ease, background 0.5s ease;
 }
 
+/* Carte de la ville */
+#city-map {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+#city-map h3 {
+    color: #667eea;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+#map-container {
+    background: #e0e0e0;
+    border-radius: 10px;
+    padding: 15px;
+    overflow: hidden;
+}
+
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    grid-template-rows: repeat(6, 60px);
+    gap: 8px;
+    background: #90a4ae;
+    padding: 10px;
+    border-radius: 8px;
+    position: relative;
+    background-image:
+        linear-gradient(0deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent),
+        linear-gradient(90deg, transparent 24%, rgba(255, 255, 255, .05) 25%, rgba(255, 255, 255, .05) 26%, transparent 27%, transparent 74%, rgba(255, 255, 255, .05) 75%, rgba(255, 255, 255, .05) 76%, transparent 77%, transparent);
+    background-size: 100% 16.66%, 14.28% 100%;
+}
+
+.building {
+    background: linear-gradient(135deg, #546e7a 0%, #37474f 100%);
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    position: relative;
+    border: 2px solid #455a64;
+}
+
+.building::before {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    bottom: 5px;
+    background-image:
+        linear-gradient(to right, transparent 40%, rgba(255, 255, 255, 0.2) 40%, rgba(255, 255, 255, 0.2) 45%, transparent 45%),
+        linear-gradient(to bottom, transparent 40%, rgba(255, 255, 255, 0.2) 40%, rgba(255, 255, 255, 0.2) 45%, transparent 45%);
+    background-size: 10px 10px;
+    border-radius: 3px;
+}
+
+.delivery-point {
+    background: radial-gradient(circle, #ff6b6b 0%, #ee5a6f 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5em;
+    box-shadow: 0 2px 8px rgba(238, 90, 111, 0.6);
+    border: 3px solid white;
+    z-index: 2;
+    position: relative;
+    animation: pulse-point 2s ease-in-out infinite;
+}
+
+.delivery-point::before {
+    content: '📍';
+}
+
+.delivery-point.completed {
+    background: radial-gradient(circle, #51cf66 0%, #37b24d 100%);
+    box-shadow: 0 2px 8px rgba(55, 178, 77, 0.6);
+    animation: none;
+}
+
+.delivery-point.completed::before {
+    content: '✓';
+    color: white;
+    font-size: 0.8em;
+    font-weight: bold;
+}
+
+.delivery-point.current {
+    background: radial-gradient(circle, #ffd43b 0%, #fab005 100%);
+    box-shadow: 0 0 15px rgba(250, 176, 5, 0.8);
+    animation: pulse-current 1s ease-in-out infinite;
+    transform: scale(1.2);
+}
+
+@keyframes pulse-point {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes pulse-current {
+    0%, 100% {
+        transform: scale(1.2);
+        box-shadow: 0 0 15px rgba(250, 176, 5, 0.8);
+    }
+    50% {
+        transform: scale(1.3);
+        box-shadow: 0 0 25px rgba(250, 176, 5, 1);
+    }
+}
+
+#delivery-truck {
+    position: absolute;
+    font-size: 2em;
+    z-index: 10;
+    transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.5));
+    transform-origin: center;
+}
+
+#delivery-truck.moving {
+    animation: truck-bounce 0.5s ease-in-out infinite;
+}
+
+@keyframes truck-bounce {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-3px) rotate(2deg); }
+}
+
 /* Zone de livraison */
 #delivery-zone {
     background: #f8f9fa;
@@ -397,6 +527,15 @@ button:hover {
 
     #package-details {
         grid-template-columns: 1fr;
+    }
+
+    .map-grid {
+        grid-template-rows: repeat(6, 50px);
+        gap: 5px;
+    }
+
+    #delivery-truck {
+        font-size: 1.5em;
     }
 }
 
