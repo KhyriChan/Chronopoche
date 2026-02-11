@@ -1,145 +1,69 @@
-# 📦 CHRONOVOL - Le Livreur Indélicat
+# 📦 CHRONOVOL - Le Livreur Indélicat (Version Stratégique)
 
 ## 🎮 Description
 
-**Chronovol** est un jeu de gestion et d'infiltration légère où vous incarnez un livreur de colis tenté par le vol. Chaque livraison est une opportunité... mais aussi un risque. Saurez-vous équilibrer votre cupidité et votre prudence pour atteindre vos objectifs sans vous faire prendre ?
+**Chronovol** est un jeu de gestion narratif où chaque livraison est un dilemme : livrer honnêtement, inspecter, voler… puis survivre aux conséquences.
+
+Cette version pousse le concept plus loin avec une vraie couche stratégique :
+- choix de **quartier quotidien** (risque/récompense/fatigue)
+- double pression (**suspicion interne** + **pression policière**)
+- gestion d'**énergie** et d'actions tactiques (scan / pause)
+
+## 🆕 Ce qui change dans cette version
+
+### 1) Planification de tournée
+Chaque matin, vous choisissez 1 quartier parmi 3 propositions :
+- valeur moyenne des colis
+- exposition au risque
+- fatigue générée pendant la journée
+
+### 2) Triple ressource de survie
+- **Butin** : votre objectif économique
+- **Suspicion** : votre risque d'enquête interne
+- **Pression** : votre visibilité auprès des habitants/police
+- **Énergie** : votre capacité à exécuter des actions risquées
+
+### 3) Outils tactiques en direct
+- **🛰️ Scanner le colis** : révèle une estimation quasi exacte de la valeur (avec un léger risque)
+- **☕ Pause discrète** : récupère de l'énergie et baisse la pression (limité par jour)
+
+### 4) Nouvelles fins de partie
+En plus des fins classiques :
+- **🚨 Chasse à l'homme** : pression max
+- **🥵 Burnout total** : énergie à zéro
 
 ## 🎯 Objectif
 
-Survivre 30 jours de livraisons tout en accumulant suffisamment d'argent pour changer de vie, sans vous faire attraper par les autorités ou votre employeur.
-
-### Fins possibles :
-
-- 🏝️ **Jackpot** (10 000€+) : Retraite anticipée aux Bahamas !
-- 😌 **Sortie honorable** (5 000€+) : Assez pour repartir sur de bonnes bases
-- 😐 **Retour à la case départ** (< 5 000€) : Vous continuez votre vie de livreur
-- 🔍 **Enquête interne** : Trop de plaintes, vous êtes licencié
-- 🚔 **Arrestation** : La police vous a attrapé
-
-## 🎲 Mécaniques de jeu
-
-### Jauge de suspicion
-- Augmente quand vous inspectez ou volez des colis
-- Les colis de grande valeur (Apple, Amazon) augmentent plus la suspicion
-- La vigilance du client affecte le gain de suspicion
-- Si elle atteint 100%, c'est game over
-- Diminue légèrement chaque jour et après chaque livraison normale
-
-### Types de colis
-
-| Type | Risque | Valeur | Caractéristiques |
-|------|--------|--------|------------------|
-| 📱 **Apple Store** | ⭐⭐⭐⭐ | 200-1500€ | TRÈS surveillé, valeur maximale |
-| 📦 **Amazon Prime** | ⭐⭐⭐ | 50-300€ | Surveillé, souvent lucratif |
-| 🛍️ **Fnac** | ⭐⭐ | 30-200€ | Électronique ou livres |
-| 📮 **Colis standard** | ⭐⭐ | 20-150€ | Mystère total |
-| 👕 **Vinted** | ⭐ | 10-80€ | Vêtements, faible valeur |
-| 📭 **AliExpress** | ⭐ | 5-50€ | Gadgets chinois, peu intéressant |
-
-### Types de clients
-
-- 🏃 **Jeune actif pressé** : Faible vigilance, ne remarque rien
-- 👴 **Retraité vigilant** : Observe par la fenêtre, attention !
-- 📹 **Paranoïaque high-tech** : Caméras partout, DANGER
-- 🚪 **Absent** : Personne à l'horizon, opportunité parfaite
-- 😊 **Voisin sympa** : Gentil mais peut quand même se plaindre
-- 🤨 **Voisine méfiante** : Note tout dans un carnet, risque élevé
-
-### Système de risque/récompense
-
-Chaque colis présente des indices visuels :
-- **Taille** : Plus c'est gros, plus c'est tentant (et risqué)
-- **Expéditeur** : Apple > Amazon > Fnac > Standard > Vinted > AliExpress
-- **Aspect** : Des détails sur l'emballage vous donnent des indices
-- **Indices** : Des conseils apparaissent pour vous aider à décider
+Survivre 30 jours, accumuler un maximum d'argent, et éviter :
+1. l'arrestation,
+2. l'enquête interne,
+3. la chasse à l'homme,
+4. l'effondrement physique.
 
 ## 🎮 Comment jouer
 
-### Lancer le jeu
-1. Ouvrez `index.html` dans votre navigateur
-2. Cliquez sur "Commencer la tournée"
+1. Ouvrez `index.html`
+2. Cliquez sur **Commencer la tournée**
+3. **Choisissez un quartier** pour lancer la journée
+4. À chaque arrêt :
+   - Livrer
+   - Scanner
+   - Inspecter puis décider
+5. Gardez un œil sur les quatre jauges clés (Butin, Suspicion, Pression, Énergie)
 
-### Pendant une livraison
-1. **Observez** les informations du colis et du client
-2. **Décidez** :
-   - ✅ **Livrer normalement** : Sûr, mais pas lucratif
-   - 👀 **"Inspecter"** : Risqué, vous découvrez le contenu avant de décider
+## 💡 Conseils de stratégie
 
-3. Si vous inspectez :
-   - Vous voyez ce qu'il y a dans le colis
-   - **Voler** : Empochez l'argent mais augmentez la suspicion
-   - **Refermer** : Livrez quand même, légère augmentation de suspicion
+- Un quartier rentable n'est pas toujours un quartier gagnant.
+- Utilisez le scanner sur les colis à fort potentiel avant d'inspecter.
+- Gardez vos pauses pour les moments où énergie et pression se dégradent en même temps.
+- Quand la pression monte, privilégiez quelques livraisons propres pour respirer.
 
-### Stratégies
-
-#### Stratégie prudente 🛡️
-- Ne volez que les colis de faible valeur
-- Évitez les clients vigilants
-- Inspectez peu, livrez beaucoup
-- Résultat : Sortie honorable probable
-
-#### Stratégie équilibrée ⚖️
-- Choisissez vos cibles avec soin
-- Évitez les situations à haut risque (caméras + Apple)
-- Alternez livraisons normales et vols opportunistes
-- Résultat : Jackpot possible avec de la chance
-
-#### Stratégie cupide 💰
-- Volez tout ce qui a de la valeur
-- Prenez tous les risques
-- Résultat : Bahamas ou prison !
-
-## 🎯 Conseils
-
-- Les **clients absents** avec des **colis standards** sont les cibles idéales
-- Évitez à tout prix les **Apple Store** chez les **paranoïaques high-tech**
-- Votre **salaire quotidien** (50€/jour) s'accumule automatiquement
-- Les **pourboires** occasionnels sont un bonus sans risque
-- Surveillez votre **jauge de suspicion** en permanence
-- Les **événements aléatoires** peuvent vous aider ou vous nuire
-
-## 🛠️ Technologies utilisées
+## 🛠️ Stack
 
 - HTML5
-- CSS3 (avec animations et gradients)
-- JavaScript Vanilla (aucune dépendance)
-
-## 📊 Statistiques
-
-Le jeu suit vos performances :
-- 💰 Argent accumulé
-- 📦 Livraisons totales
-- 🔍 Colis inspectés
-- 💼 Colis volés
-- ☎️ Plaintes reçues
-- 🎯 Niveau de suspicion
-- 📅 Jours travaillés
-
-## 🎨 Fonctionnalités
-
-- ✅ Interface moderne et responsive
-- ✅ Animations fluides
-- ✅ Système de progression sur 30 jours
-- ✅ Événements aléatoires dynamiques
-- ✅ Journal d'événements en temps réel
-- ✅ 6 types de colis différents
-- ✅ 6 types de clients différents
-- ✅ 5 fins possibles
-- ✅ Système de suspicion progressif
-- ✅ Mécaniques de risque/récompense
-
-## 🎬 Démo
-
-Ouvrez simplement `index.html` dans votre navigateur préféré. Aucune installation requise !
-
-## 📜 License
-
-Projet créé pour démonstration. Libre d'utilisation et de modification.
+- CSS3
+- JavaScript Vanilla
 
 ## ⚠️ Avertissement
 
-Ce jeu est une œuvre de fiction à but ludique et humoristique. Il ne cautionne en aucun cas le vol, la fraude ou toute activité illégale. Respectez la loi et la propriété d'autrui dans la vraie vie ! 📦
-
----
-
-**Bonne chance, livreur indélicat ! 🚚💨**
+Jeu de fiction satirique. Il ne cautionne ni vol ni fraude dans la vie réelle.

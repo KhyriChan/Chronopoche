@@ -3,10 +3,62 @@ const GAME_CONFIG = {
     TOTAL_DAYS: 30,
     DELIVERIES_PER_DAY: 10,
     MAX_SUSPICION: 100,
+    MAX_HEAT: 100,
+    MAX_ENERGY: 100,
     SUSPICION_THRESHOLD_INVESTIGATION: 80,
     MONEY_GOAL_PARADISE: 10000,
     MONEY_GOAL_COMFORTABLE: 5000,
+    DAILY_WAGE: 50,
 };
+
+// ===== QUARTIERS =====
+const DISTRICTS = [
+    {
+        id: 'business',
+        name: 'Quartier d\'affaires',
+        description: 'Clients pressés, colis premium. Très rentable mais surveillé.',
+        valueModifier: 1.25,
+        suspicionModifier: 1.2,
+        energyCostModifier: 1.1,
+        heatModifier: 1.15
+    },
+    {
+        id: 'suburb',
+        name: 'Zone pavillonnaire',
+        description: 'Rythme modéré, voisins attentifs, gains stables.',
+        valueModifier: 1,
+        suspicionModifier: 1,
+        energyCostModifier: 1,
+        heatModifier: 1
+    },
+    {
+        id: 'downtown',
+        name: 'Centre-ville dense',
+        description: 'Trafic pénible, mais beaucoup de livraisons opportunistes.',
+        valueModifier: 1.1,
+        suspicionModifier: 1.05,
+        energyCostModifier: 1.2,
+        heatModifier: 1.1
+    },
+    {
+        id: 'residential',
+        name: 'Résidences calmes',
+        description: 'Peu de risques, moins de gros lots.',
+        valueModifier: 0.85,
+        suspicionModifier: 0.8,
+        energyCostModifier: 0.85,
+        heatModifier: 0.8
+    },
+    {
+        id: 'industrial',
+        name: 'Zone industrielle',
+        description: 'Entrepôts et caméras. Colis lourds mais juteux.',
+        valueModifier: 1.2,
+        suspicionModifier: 1.15,
+        energyCostModifier: 1.25,
+        heatModifier: 1.2
+    }
+];
 
 // ===== TYPES DE COLIS =====
 const PACKAGE_TYPES = {
@@ -106,20 +158,34 @@ const CUSTOMER_TYPES = {
     }
 };
 
+const SCAN_MESSAGES = [
+    'Scan spectral: présence de composants électroniques détectée.',
+    'Scan thermique: contenu compact, valeur probable élevée.',
+    'Scan logistique: emballage reconditionné, faible marge.',
+    'Scan express: probablement un article lifestyle standard.'
+];
+
 // ===== ÉTAT DU JEU =====
 let gameState = {
     day: 1,
     money: 0,
     suspicion: 0,
+    heat: 0,
+    energy: GAME_CONFIG.MAX_ENERGY,
     deliveriesToday: 0,
     totalDeliveries: 0,
     packagesStolen: 0,
     packagesInspected: 0,
     complaintsReceived: 0,
+    scansUsed: 0,
+    pausesUsed: 0,
     currentPackage: null,
     currentCustomer: null,
     gameOver: false,
-    events: []
+    events: [],
+    selectedDistrict: null,
+    districtOptions: [],
+    packageScanned: false
 };
 
 // ===== ÉLÉMENTS DOM =====
@@ -135,6 +201,8 @@ const elements = {
     deliveries: document.getElementById('deliveries'),
     suspicion: document.getElementById('suspicion'),
     suspicionFill: document.getElementById('suspicion-fill'),
+    energy: document.getElementById('energy'),
+    heat: document.getElementById('heat'),
     address: document.getElementById('current-address'),
     customerDesc: document.getElementById('customer-description'),
     packageSize: document.getElementById('package-size'),
@@ -148,7 +216,13 @@ const elements = {
     endTitle: document.getElementById('end-title'),
     endContent: document.getElementById('end-content'),
     endStats: document.getElementById('end-stats'),
-    truck: document.getElementById('delivery-truck')
+    truck: document.getElementById('delivery-truck'),
+    dailyBriefing: document.getElementById('daily-briefing'),
+    districtOptions: document.getElementById('district-options'),
+    deliverBtn: document.getElementById('deliver-btn'),
+    inspectBtn: document.getElementById('inspect-btn'),
+    scanBtn: document.getElementById('scan-btn'),
+    cooldownBtn: document.getElementById('cooldown-btn')
 };
 
 // ===== CARTE ET ANIMATION DU CAMION =====
@@ -163,41 +237,33 @@ function moveTruckToPoint(pointIndex) {
     const point = deliveryPoints[pointIndex];
     const truck = elements.truck;
 
-    // Marquer le point précédent comme complété
     if (pointIndex > 0) {
         deliveryPoints[pointIndex - 1].classList.remove('current');
         deliveryPoints[pointIndex - 1].classList.add('completed');
     }
 
-    // Marquer le point actuel
     point.classList.add('current');
 
-    // Obtenir la position du point
     const pointRect = point.getBoundingClientRect();
     const gridRect = point.parentElement.getBoundingClientRect();
 
-    // Calculer la position relative
     const x = pointRect.left - gridRect.left + (pointRect.width / 2) - 20;
     const y = pointRect.top - gridRect.top + (pointRect.height / 2) - 20;
 
-    // Animer le camion
     truck.classList.add('moving');
     truck.style.left = `${x}px`;
     truck.style.top = `${y}px`;
 
-    // Retirer l'animation après le déplacement
     setTimeout(() => {
         truck.classList.remove('moving');
     }, 1500);
 }
 
 function resetMap() {
-    // Réinitialiser tous les points
     deliveryPoints.forEach(point => {
         point.classList.remove('current', 'completed');
     });
 
-    // Replacer le camion au premier point
     moveTruckToPoint(0);
 }
 
@@ -210,22 +276,105 @@ function randomChoice(array) {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-function randomFloat(min, max) {
-    return Math.random() * (max - min) + min;
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function getCurrentDistrict() {
+    return gameState.selectedDistrict || {
+        name: 'Quartier non défini',
+        description: 'Sélectionnez une tournée pour commencer.',
+        valueModifier: 1,
+        suspicionModifier: 1,
+        energyCostModifier: 1,
+        heatModifier: 1
+    };
+}
+
+function getEnergyPenalty() {
+    if (gameState.energy >= 70) return 1;
+    if (gameState.energy >= 40) return 1.15;
+    if (gameState.energy >= 20) return 1.35;
+    return 1.6;
+}
+
+function consumeEnergy(baseCost) {
+    const district = getCurrentDistrict();
+    const cost = Math.ceil(baseCost * district.energyCostModifier);
+    gameState.energy = clamp(gameState.energy - cost, 0, GAME_CONFIG.MAX_ENERGY);
+}
+
+function increaseHeat(baseAmount) {
+    const district = getCurrentDistrict();
+    const amount = Math.ceil(baseAmount * district.heatModifier);
+    gameState.heat = clamp(gameState.heat + amount, 0, GAME_CONFIG.MAX_HEAT);
+}
+
+// ===== PLAN DE TOURNÉE =====
+function refreshDistrictOptions() {
+    const shuffled = [...DISTRICTS].sort(() => Math.random() - 0.5);
+    gameState.districtOptions = shuffled.slice(0, 3);
+    gameState.selectedDistrict = null;
+
+    elements.districtOptions.innerHTML = '';
+
+    gameState.districtOptions.forEach((district) => {
+        const button = document.createElement('button');
+        button.className = 'district-btn';
+        button.innerHTML = `
+            <strong>${district.name}</strong>
+            <span>${district.description}</span>
+        `;
+        button.addEventListener('click', () => selectDistrict(district.id));
+        elements.districtOptions.appendChild(button);
+    });
+
+    elements.dailyBriefing.textContent = 'Choisissez votre quartier du jour : risque, valeur et fatigue changent selon la zone.';
+    setDeliveryButtonsEnabled(false);
+}
+
+function selectDistrict(districtId) {
+    const district = gameState.districtOptions.find(option => option.id === districtId);
+    if (!district) return;
+
+    gameState.selectedDistrict = district;
+    addLog(`🧭 Tournée planifiée : ${district.name}. ${district.description}`, 'info');
+
+    [...elements.districtOptions.children].forEach((button, index) => {
+        const option = gameState.districtOptions[index];
+        button.classList.toggle('selected', option.id === districtId);
+    });
+
+    elements.dailyBriefing.textContent = `Zone active : ${district.name}. Bonus valeur x${district.valueModifier.toFixed(2)}, risque x${district.suspicionModifier.toFixed(2)}.`;
+    setDeliveryButtonsEnabled(true);
+
+    if (!gameState.currentPackage) {
+        startNewDelivery();
+    } else {
+        updatePackageDisplay();
+    }
+}
+
+function setDeliveryButtonsEnabled(enabled) {
+    elements.deliverBtn.disabled = !enabled;
+    elements.inspectBtn.disabled = !enabled;
+    elements.scanBtn.disabled = !enabled;
 }
 
 // ===== GÉNÉRATION DE LIVRAISON =====
 function generatePackage() {
+    const district = getCurrentDistrict();
     const types = Object.keys(PACKAGE_TYPES);
     const typeKey = randomChoice(types);
     const type = PACKAGE_TYPES[typeKey];
+    const baseValue = random(type.valueRange[0], type.valueRange[1]);
 
     return {
         type: typeKey,
         name: type.name,
         riskLevel: type.riskLevel,
-        value: random(type.valueRange[0], type.valueRange[1]),
-        suspicionIncrease: type.suspicionIncrease,
+        value: Math.round(baseValue * district.valueModifier),
+        suspicionIncrease: type.suspicionIncrease * district.suspicionModifier,
         weight: randomChoice(type.weight),
         aspect: randomChoice(type.aspects),
         hints: type.hints,
@@ -235,7 +384,7 @@ function generatePackage() {
 
 function generateAddress() {
     const streets = ['Rue de la Paix', 'Avenue des Champs', 'Boulevard Victor Hugo',
-                    'Rue du Commerce', 'Impasse des Lilas', 'Place de la République'];
+        'Rue du Commerce', 'Impasse des Lilas', 'Place de la République'];
     const numbers = random(1, 150);
     return `${numbers} ${randomChoice(streets)}`;
 }
@@ -245,12 +394,14 @@ function generateCustomer() {
     const typeKey = randomChoice(types);
     const type = CUSTOMER_TYPES[typeKey];
 
+    const heatPressure = gameState.heat > 60 ? 0.1 : 0;
+
     return {
         type: typeKey,
         name: type.name,
         description: type.description,
-        vigilanceLevel: type.vigilanceLevel,
-        complaintChance: type.complaintChance
+        vigilanceLevel: type.vigilanceLevel + heatPressure,
+        complaintChance: clamp(type.complaintChance + heatPressure, 0, 0.9)
     };
 }
 
@@ -261,8 +412,9 @@ function updateUI() {
     elements.deliveries.textContent = `${gameState.deliveriesToday}/${GAME_CONFIG.DELIVERIES_PER_DAY}`;
     elements.suspicion.textContent = `${Math.round(gameState.suspicion)}%`;
     elements.suspicionFill.style.width = `${gameState.suspicion}%`;
+    elements.energy.textContent = `${Math.round(gameState.energy)}%`;
+    elements.heat.textContent = `${Math.round(gameState.heat)}%`;
 
-    // Changer la couleur de la barre de suspicion
     elements.suspicionFill.className = 'suspicion-fill';
     if (gameState.suspicion < 30) {
         elements.suspicionFill.classList.add('suspicion-low');
@@ -271,21 +423,28 @@ function updateUI() {
     } else {
         elements.suspicionFill.classList.add('suspicion-high');
     }
+
+    elements.cooldownBtn.disabled = gameState.pausesUsed >= 2 || gameState.energy > 95;
 }
 
 function updatePackageDisplay() {
     const pkg = gameState.currentPackage;
     const customer = gameState.currentCustomer;
+    const district = getCurrentDistrict();
 
     elements.address.textContent = pkg.address;
-    elements.customerDesc.textContent = customer.description;
-    elements.packageSize.textContent = ['Petit', 'Moyen', 'Grand'][pkg.riskLevel - 1] || 'Moyen';
+    elements.customerDesc.textContent = `${customer.description} • Zone: ${district.name}`;
+    elements.packageSize.textContent = ['Petit', 'Moyen', 'Grand', 'Très grand'][pkg.riskLevel - 1] || 'Moyen';
     elements.packageSender.textContent = pkg.name;
     elements.packageWeight.textContent = pkg.weight;
     elements.packageAspect.textContent = pkg.aspect;
 
-    // Afficher les indices
-    elements.packageHints.innerHTML = pkg.hints.map(hint =>
+    const hints = [...pkg.hints];
+    if (gameState.packageScanned) {
+        hints.unshift(`Valeur estimée ultra-précise : ${pkg.value}€`);
+    }
+
+    elements.packageHints.innerHTML = hints.map(hint =>
         `<div>💡 ${hint}</div>`
     ).join('');
 }
@@ -296,14 +455,17 @@ function addLog(message, type = 'info') {
     entry.textContent = message;
     elements.logContent.prepend(entry);
 
-    // Garder seulement les 5 dernières entrées
-    while (elements.logContent.children.length > 5) {
+    while (elements.logContent.children.length > 6) {
         elements.logContent.removeChild(elements.logContent.lastChild);
     }
 }
 
 // ===== LOGIQUE DE LIVRAISON =====
 function startNewDelivery() {
+    if (!gameState.selectedDistrict) {
+        return;
+    }
+
     if (gameState.deliveriesToday >= GAME_CONFIG.DELIVERIES_PER_DAY) {
         endDay();
         return;
@@ -311,20 +473,28 @@ function startNewDelivery() {
 
     gameState.currentPackage = generatePackage();
     gameState.currentCustomer = generateCustomer();
+    gameState.packageScanned = false;
 
-    // Déplacer le camion vers le point de livraison
     moveTruckToPoint(gameState.deliveriesToday);
 
     updatePackageDisplay();
     updateUI();
 }
 
+function applyDeliveryFatigue() {
+    consumeEnergy(8);
+    increaseHeat(2);
+}
+
 function deliverNormally() {
+    if (!gameState.currentPackage) return;
+
     gameState.deliveriesToday++;
     gameState.totalDeliveries++;
 
-    // Petite chance d'événement positif
-    if (Math.random() < 0.1) {
+    applyDeliveryFatigue();
+
+    if (Math.random() < 0.12) {
         const tip = random(2, 10);
         gameState.money += tip;
         addLog(`✨ Le client vous a laissé ${tip}€ de pourboire !`, 'success');
@@ -332,48 +502,55 @@ function deliverNormally() {
         addLog('📦 Livraison effectuée normalement.', 'info');
     }
 
-    // Réduction légère de la suspicion pour bon comportement
-    gameState.suspicion = Math.max(0, gameState.suspicion - 1);
+    gameState.suspicion = Math.max(0, gameState.suspicion - 1.5);
 
     checkForRandomEvents();
-    startNewDelivery();
+    checkGameOver();
+
+    if (!gameState.gameOver) {
+        startNewDelivery();
+    }
 }
 
 function inspectPackage() {
+    if (!gameState.currentPackage) return;
+
     const pkg = gameState.currentPackage;
     const customer = gameState.currentCustomer;
 
     gameState.packagesInspected++;
+    consumeEnergy(6);
 
-    // Calculer si on se fait repérer pendant l'inspection
-    const detectionChance = customer.vigilanceLevel * 0.15;
+    const heatRisk = gameState.heat / 100 * 0.15;
+    const exhaustionRisk = (1 - gameState.energy / 100) * 0.2;
+    const detectionChance = customer.vigilanceLevel * 0.14 + heatRisk + exhaustionRisk;
     const wasDetected = Math.random() < detectionChance;
 
     if (wasDetected) {
-        gameState.suspicion += pkg.suspicionIncrease * 1.5;
-        addLog(`⚠️ Quelqu'un vous a vu manipuler le colis !`, 'danger');
+        gameState.suspicion += pkg.suspicionIncrease * 1.6;
+        increaseHeat(6);
+        addLog('⚠️ Quelqu\'un vous a vu manipuler le colis !', 'danger');
 
         if (Math.random() < customer.complaintChance) {
             gameState.complaintsReceived++;
             gameState.suspicion += 10;
-            addLog(`☎️ Le client a appelé votre manager !`, 'danger');
+            increaseHeat(8);
+            addLog('☎️ Le client a appelé votre manager !', 'danger');
         }
 
-        // Forcer à livrer normalement
         deliverNormally();
         return;
     }
 
-    // Ouvrir le modal d'inspection
     const contents = [
         { item: `Un iPhone neuf (${pkg.value}€)`, emoji: '📱' },
         { item: `Une montre connectée (${pkg.value}€)`, emoji: '⌚' },
         { item: `Des AirPods (${pkg.value}€)`, emoji: '🎧' },
-        { item: `Un livre (${pkg.value}€)`, emoji: '📚' },
-        { item: `Des vêtements (${pkg.value}€)`, emoji: '👕' },
+        { item: `Un livre collector (${pkg.value}€)`, emoji: '📚' },
+        { item: `Des vêtements de marque (${pkg.value}€)`, emoji: '👕' },
         { item: `Un gadget électronique (${pkg.value}€)`, emoji: '🎮' },
         { item: `Des bijoux fantaisie (${pkg.value}€)`, emoji: '💍' },
-        { item: `Des produits de beauté (${pkg.value}€)`, emoji: '💄' },
+        { item: `Des produits premium (${pkg.value}€)`, emoji: '💄' }
     ];
 
     const content = randomChoice(contents);
@@ -386,6 +563,7 @@ function inspectPackage() {
     `;
 
     elements.modal.classList.add('active');
+    updateUI();
 }
 
 function stealPackage() {
@@ -397,21 +575,22 @@ function stealPackage() {
     gameState.deliveriesToday++;
     gameState.totalDeliveries++;
 
-    // Augmentation de suspicion
     let suspicionGain = pkg.suspicionIncrease;
-
-    // La vigilance du client affecte la suspicion
     suspicionGain *= customer.vigilanceLevel;
+    suspicionGain *= (1 + gameState.heat / 150);
+    suspicionGain *= getEnergyPenalty();
 
     gameState.suspicion += suspicionGain;
+    increaseHeat(10);
+    consumeEnergy(12);
 
-    // Chance de plainte
-    if (Math.random() < customer.complaintChance * 0.7) {
+    if (Math.random() < customer.complaintChance * 0.75) {
         gameState.complaintsReceived++;
         gameState.suspicion += 15;
-        addLog(`☎️ ALERTE : Le client a signalé le colis manquant !`, 'danger');
+        increaseHeat(12);
+        addLog('☎️ ALERTE : Le client a signalé le colis manquant !', 'danger');
     } else {
-        addLog(`💰 Vous avez empoché ${pkg.value}€. Le client ne s'est aperçu de rien... pour l'instant.`, 'warning');
+        addLog(`💰 Vous avez empoché ${pkg.value}€. Personne n'a rien vu... pour l'instant.`, 'warning');
     }
 
     elements.modal.classList.remove('active');
@@ -425,39 +604,97 @@ function stealPackage() {
 }
 
 function cancelSteal() {
-    gameState.suspicion += 3; // Petite augmentation car temps perdu
+    gameState.suspicion += 3;
+    consumeEnergy(3);
     addLog('📦 Vous refermez le colis et le livrez normalement.', 'info');
     elements.modal.classList.remove('active');
     deliverNormally();
 }
 
+function scanPackage() {
+    if (!gameState.currentPackage || gameState.packageScanned) {
+        addLog('🛰️ Scan déjà effectué pour ce colis.', 'warning');
+        return;
+    }
+
+    gameState.scansUsed++;
+    consumeEnergy(4);
+    increaseHeat(3);
+
+    const failChance = 0.12 + gameState.heat / 250;
+    if (Math.random() < failChance) {
+        gameState.suspicion += 6;
+        addLog('📡 Le scan a émis un bip suspect. Vous attirez des regards.', 'danger');
+    } else {
+        gameState.packageScanned = true;
+        addLog(`🛰️ ${randomChoice(SCAN_MESSAGES)} Valeur estimée : ${gameState.currentPackage.value}€`, 'success');
+        updatePackageDisplay();
+    }
+
+    updateUI();
+    checkGameOver();
+}
+
+function takeCooldownBreak() {
+    if (gameState.pausesUsed >= 2) {
+        addLog('☕ Vous avez déjà pris toutes vos pauses discrètes du jour.', 'warning');
+        return;
+    }
+
+    gameState.pausesUsed++;
+    const energyGain = random(12, 20);
+    const heatReduction = random(6, 12);
+
+    gameState.energy = clamp(gameState.energy + energyGain, 0, GAME_CONFIG.MAX_ENERGY);
+    gameState.heat = clamp(gameState.heat - heatReduction, 0, GAME_CONFIG.MAX_HEAT);
+    gameState.suspicion = Math.max(0, gameState.suspicion - 2);
+
+    addLog(`☕ Pause discrète: +${energyGain}% énergie, -${heatReduction}% pression.`, 'success');
+    updateUI();
+}
+
 // ===== ÉVÉNEMENTS ALÉATOIRES =====
 function checkForRandomEvents() {
-    if (Math.random() < 0.15) {
+    if (Math.random() < 0.18) {
         const events = [
             {
-                message: '🚔 Une voiture de police passe dans la rue...',
-                effect: () => { gameState.suspicion += 5; },
+                message: '🚔 Contrôle surprise dans le quartier : la tension monte.',
+                effect: () => {
+                    gameState.suspicion += 6;
+                    increaseHeat(10);
+                },
                 type: 'warning'
             },
             {
-                message: '☀️ Belle journée, les gens sont de bonne humeur.',
-                effect: () => { gameState.suspicion = Math.max(0, gameState.suspicion - 5); },
+                message: '☀️ Quartier calme, les habitants sont détendus.',
+                effect: () => {
+                    gameState.suspicion = Math.max(0, gameState.suspicion - 5);
+                    gameState.heat = Math.max(0, gameState.heat - 6);
+                },
                 type: 'success'
             },
             {
-                message: '📰 Un article sur les vols de colis fait la une.',
-                effect: () => { gameState.suspicion += 10; },
+                message: '📰 Les vols de colis passent au journal local.',
+                effect: () => {
+                    gameState.suspicion += 10;
+                    increaseHeat(8);
+                },
                 type: 'danger'
             },
             {
-                message: '🎵 Vous trouvez 20€ par terre !',
-                effect: () => { gameState.money += 20; },
+                message: '🎵 Un voisin vous glisse 20€ pour monter un colis lourd.',
+                effect: () => {
+                    gameState.money += 20;
+                    consumeEnergy(2);
+                },
                 type: 'success'
             },
             {
-                message: '😓 Un client vous reproche un retard... qui n\'est pas de votre faute.',
-                effect: () => { gameState.suspicion += 8; },
+                message: '🚦 Embouteillages monstres: vous finissez rincé.',
+                effect: () => {
+                    consumeEnergy(10);
+                    gameState.suspicion += 4;
+                },
                 type: 'warning'
             }
         ];
@@ -472,14 +709,15 @@ function checkForRandomEvents() {
 function endDay() {
     gameState.day++;
     gameState.deliveriesToday = 0;
+    gameState.pausesUsed = 0;
+    gameState.packageScanned = false;
+    gameState.currentPackage = null;
+    gameState.currentCustomer = null;
 
-    // Salaire quotidien
-    const dailyWage = 50;
-    gameState.money += dailyWage;
+    gameState.money += GAME_CONFIG.DAILY_WAGE;
 
-    addLog(`🌙 Fin de journée ${gameState.day - 1}. Salaire : ${dailyWage}€`, 'success');
+    addLog(`🌙 Fin de journée ${gameState.day - 1}. Salaire : ${GAME_CONFIG.DAILY_WAGE}€`, 'success');
 
-    // Vérification de fin de jeu
     if (gameState.day > GAME_CONFIG.TOTAL_DAYS) {
         endGame('monthComplete');
         return;
@@ -488,29 +726,39 @@ function endDay() {
     checkGameOver();
 
     if (!gameState.gameOver) {
-        // Petite réduction de suspicion overnight
         gameState.suspicion = Math.max(0, gameState.suspicion - 5);
+        gameState.heat = Math.max(0, gameState.heat - 12);
+        gameState.energy = clamp(gameState.energy + 35, 0, GAME_CONFIG.MAX_ENERGY);
+
+        refreshDistrictOptions();
         updateUI();
+
         setTimeout(() => {
             resetMap();
-            addLog(`☀️ Jour ${gameState.day} - Nouvelle tournée`, 'info');
-            startNewDelivery();
-        }, 1000);
+            addLog(`☀️ Jour ${gameState.day} - Choisissez votre quartier.`, 'info');
+        }, 700);
     }
 }
 
 // ===== VÉRIFICATION DE FIN DE JEU =====
 function checkGameOver() {
-    // Trop de suspicion = investigation
+    if (gameState.energy <= 0) {
+        endGame('burnout');
+        return;
+    }
+
     if (gameState.suspicion >= GAME_CONFIG.MAX_SUSPICION) {
         endGame('caught');
         return;
     }
 
-    // Investigation si suspicion très élevée
+    if (gameState.heat >= GAME_CONFIG.MAX_HEAT) {
+        endGame('manhunt');
+        return;
+    }
+
     if (gameState.suspicion >= GAME_CONFIG.SUSPICION_THRESHOLD_INVESTIGATION && Math.random() < 0.3) {
         endGame('investigation');
-        return;
     }
 }
 
@@ -520,9 +768,11 @@ function endGame(reason) {
     screens.game.classList.remove('active');
     screens.end.classList.add('active');
 
-    let title, content, titleColor;
+    let title;
+    let content;
+    let titleColor;
 
-    switch(reason) {
+    switch (reason) {
         case 'caught':
             title = '🚔 ARRÊTÉ !';
             titleColor = '#dc3545';
@@ -530,6 +780,26 @@ function endGame(reason) {
                 <p>Votre comportement a fini par attirer l'attention des autorités.</p>
                 <p>Une enquête a révélé vos larcins. Vous êtes arrêté pour vol et abus de confiance.</p>
                 <p><strong>Prochaine destination : Le tribunal, puis probablement la prison.</strong></p>
+            `;
+            break;
+
+        case 'manhunt':
+            title = '🚨 CHASSE À L\'HOMME';
+            titleColor = '#ff6b6b';
+            content = `
+                <p>Votre niveau de pression policière est devenu incontrôlable.</p>
+                <p>Votre visage circule sur tous les groupes de quartier et les vigiles vous attendent.</p>
+                <p><strong>Impossible de continuer sans vous faire repérer : fin de cavale.</strong></p>
+            `;
+            break;
+
+        case 'burnout':
+            title = '🥵 BURNOUT TOTAL';
+            titleColor = '#ff922b';
+            content = `
+                <p>Vous avez poussé trop loin. Fatigue, stress, erreurs en chaîne.</p>
+                <p>Vous faites un malaise en pleine tournée et la direction suspend votre contrat.</p>
+                <p><strong>Vous survivez... mais votre plan s\'effondre.</strong></p>
             `;
             break;
 
@@ -548,28 +818,33 @@ function endGame(reason) {
                 title = '🏝️ JACKPOT !';
                 titleColor = '#28a745';
                 content = `
-                    <p>Vous avez réussi un mois complet sans vous faire prendre !</p>
-                    <p>Avec ${gameState.money}€ en poche, vous démissionnez et partez aux Bahamas.</p>
-                    <p><strong>Retraite anticipée sous les palmiers. Vous avez gagné !</strong></p>
+                    <p>Vous avez terminé le mois sans tomber.</p>
+                    <p>Avec ${gameState.money}€ en poche, vous quittez tout et disparaissez au soleil.</p>
+                    <p><strong>Le crime presque parfait... cette fois.</strong></p>
                 `;
             } else if (gameState.money >= GAME_CONFIG.MONEY_GOAL_COMFORTABLE) {
                 title = '😌 SORTIE HONORABLE';
                 titleColor = '#38ef7d';
                 content = `
                     <p>Vous terminez le mois avec ${gameState.money}€.</p>
-                    <p>Ce n'est pas la fortune, mais c'est suffisant pour vous en sortir quelques mois.</p>
-                    <p>Vous démissionnez et cherchez un meilleur emploi. Une vie honnête vous attend peut-être.</p>
+                    <p>Pas de jackpot, mais assez pour reprendre votre vie en main.</p>
+                    <p><strong>Vous quittez la livraison avant la catastrophe.</strong></p>
                 `;
             } else {
                 title = '😐 RETOUR À LA CASE DÉPART';
                 titleColor = '#667eea';
                 content = `
                     <p>Le mois est terminé. Vous avez ${gameState.money}€.</p>
-                    <p>Ce n'est pas suffisant pour changer de vie.</p>
-                    <p>Vous continuez votre travail de livreur, avec vos maigres économies et vos regrets.</p>
+                    <p>Ce n\'est pas suffisant pour changer de vie.</p>
+                    <p>Vous repartez à zéro, un peu plus cynique qu\'avant.</p>
                 `;
             }
             break;
+
+        default:
+            title = 'FIN';
+            titleColor = '#667eea';
+            content = '<p>La partie est terminée.</p>';
     }
 
     elements.endTitle.textContent = title;
@@ -581,8 +856,11 @@ function endGame(reason) {
         <p>📦 Livraisons totales : <strong>${gameState.totalDeliveries}</strong></p>
         <p>🔍 Colis inspectés : <strong>${gameState.packagesInspected}</strong></p>
         <p>💼 Colis volés : <strong>${gameState.packagesStolen}</strong></p>
+        <p>🛰️ Scans utilisés : <strong>${gameState.scansUsed}</strong></p>
         <p>☎️ Plaintes reçues : <strong>${gameState.complaintsReceived}</strong></p>
         <p>🎯 Niveau de suspicion final : <strong>${Math.round(gameState.suspicion)}%</strong></p>
+        <p>🚨 Pression finale : <strong>${Math.round(gameState.heat)}%</strong></p>
+        <p>⚡ Énergie restante : <strong>${Math.round(gameState.energy)}%</strong></p>
         <p>📅 Jours travaillés : <strong>${gameState.day - 1}/${GAME_CONFIG.TOTAL_DAYS}</strong></p>
     `;
 }
@@ -593,15 +871,22 @@ function initGame() {
         day: 1,
         money: 0,
         suspicion: 0,
+        heat: 0,
+        energy: GAME_CONFIG.MAX_ENERGY,
         deliveriesToday: 0,
         totalDeliveries: 0,
         packagesStolen: 0,
         packagesInspected: 0,
         complaintsReceived: 0,
+        scansUsed: 0,
+        pausesUsed: 0,
         currentPackage: null,
         currentCustomer: null,
         gameOver: false,
-        events: []
+        events: [],
+        selectedDistrict: null,
+        districtOptions: [],
+        packageScanned: false
     };
 
     elements.logContent.innerHTML = '';
@@ -611,8 +896,8 @@ function initGame() {
 
     updateUI();
     resetMap();
-    addLog('☀️ Début de votre première tournée. Bonne chance !', 'info');
-    startNewDelivery();
+    refreshDistrictOptions();
+    addLog('☀️ Début de votre tournée. Sélectionnez un quartier pour lancer la journée.', 'info');
 }
 
 // ===== ÉVÉNEMENTS =====
@@ -622,18 +907,18 @@ document.getElementById('restart-btn').addEventListener('click', () => {
     screens.start.classList.add('active');
 });
 
-document.getElementById('deliver-btn').addEventListener('click', deliverNormally);
-document.getElementById('inspect-btn').addEventListener('click', inspectPackage);
+elements.deliverBtn.addEventListener('click', deliverNormally);
+elements.inspectBtn.addEventListener('click', inspectPackage);
 document.getElementById('steal-btn').addEventListener('click', stealPackage);
 document.getElementById('cancel-steal-btn').addEventListener('click', cancelSteal);
+elements.scanBtn.addEventListener('click', scanPackage);
+elements.cooldownBtn.addEventListener('click', takeCooldownBreak);
 
-// Fermer le modal en cliquant à l'extérieur
 elements.modal.addEventListener('click', (e) => {
     if (e.target === elements.modal) {
         cancelSteal();
     }
 });
 
-// ===== MESSAGES DE DÉMARRAGE =====
 console.log('%c📦 CHRONOVOL - Le Livreur Indélicat', 'font-size: 20px; color: #667eea; font-weight: bold;');
-console.log('%cBienvenue dans le monde gris de la livraison de colis...', 'font-size: 14px; color: #666;');
+console.log('%cVersion améliorée: tournées stratégiques, pression policière et gestion de fatigue.', 'font-size: 14px; color: #666;');

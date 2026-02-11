@@ -107,6 +107,13 @@ button:hover {
     color: #333;
 }
 
+button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 /* En-tête du jeu */
 #game-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -168,6 +175,66 @@ button:hover {
     padding: 20px;
     border-radius: 15px;
     margin-bottom: 20px;
+}
+
+#strategy-panel {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.strategy-card {
+    background: #f8f9fa;
+    border-radius: 15px;
+    padding: 18px;
+}
+
+.strategy-card h3 {
+    color: #667eea;
+    margin-bottom: 10px;
+}
+
+#daily-briefing {
+    color: #555;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+#district-options {
+    display: grid;
+    gap: 10px;
+}
+
+.district-btn {
+    width: 100%;
+    text-align: left;
+    background: white;
+    border: 2px solid #e0e7ff;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 0.95em;
+    font-weight: 600;
+    color: #333;
+}
+
+.district-btn span {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #666;
+}
+
+.district-btn.selected {
+    border-color: #667eea;
+    background: #eef1ff;
+}
+
+.utility-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
 }
 
 #city-map h3 {
@@ -557,3 +624,6 @@ button:hover {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.7; }
 }
+    #strategy-panel {
+        grid-template-columns: 1fr;
+    }
