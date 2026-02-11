@@ -36,12 +36,36 @@
                         <span class="stat-label">📦 Livraisons</span>
                         <span class="stat-value" id="deliveries">0/10</span>
                     </div>
+                    <div class="stat">
+                        <span class="stat-label">⚡ Énergie</span>
+                        <span class="stat-value" id="energy">100%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">🚨 Pression</span>
+                        <span class="stat-value" id="heat">0%</span>
+                    </div>
                     <div class="stat suspicion-stat">
                         <span class="stat-label">🔍 Suspicion</span>
                         <div class="suspicion-bar">
                             <div id="suspicion-fill" class="suspicion-fill"></div>
                         </div>
                         <span class="stat-value" id="suspicion">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="strategy-panel">
+                <div class="strategy-card">
+                    <h3>🧭 Plan de tournée</h3>
+                    <p id="daily-briefing">Choisissez un quartier avant de commencer vos livraisons.</p>
+                    <div id="district-options"></div>
+                </div>
+                <div class="strategy-card">
+                    <h3>🛠️ Outils tactiques</h3>
+                    <p>Utilisez ces actions pour limiter la casse quand ça chauffe.</p>
+                    <div class="utility-actions">
+                        <button id="scan-btn" class="btn-secondary">🛰️ Scanner le colis</button>
+                        <button id="cooldown-btn" class="btn-secondary">☕ Pause discrète</button>
                     </div>
                 </div>
             </div>
